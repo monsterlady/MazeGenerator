@@ -10,13 +10,21 @@ public class Cell : AstarNode
     private int x, y;
     private  int cost;
     private List<Cell> neighbors;
+    private GameObject cube;
 
-    public Cell(int x, int y,int cost)
+    public Cell(int x, int y,int cost,GameObject cube)
     {
         this.x = x;
         this.y = y;
         this.cost = cost;
         this.neighbors = new List<Cell>();
+        this.cube = cube;
+    }
+
+    public GameObject Cube
+    {
+        get => cube;
+        set => cube = value;
     }
 
     public int X => x;

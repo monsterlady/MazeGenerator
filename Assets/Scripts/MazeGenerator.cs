@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using System.Threading;
+using Astar;
 using Moduel;
 using UnityEngine;
 public enum BlockDirection
@@ -27,13 +28,16 @@ public class MazeBlock
 public class MazeGenerator : Maze
 {
     public int[,] Map => _map;
-    public Cell[,] _cells;
+    public Cell[,] Cells;
+    IList<AstarNode> _lastPath;
+    List<Color> _lastPathColor;
 
     public override void GenerateMaze(int width, int height)
     {
         // 设置迷宫数据
         _map = new int[height, width];
-        _cells = new Cell[width,height];
+        Cells = new Cell[width,height];
+        _originPos = new Vector2(0,0);
         _hight = height;
         _width = width;
         
@@ -237,31 +241,37 @@ public class MazeGenerator : Maze
             for (int j = 0; j < height; j++)
             {   
                 GameObject obj = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                obj.transform.position = new Vector3(i,j,0); 
-                _cells[i,j] = new Cell(i,j,10);
+                obj.transform.position = new Vector3(i,j,0);
                 if (_map[i, j] == 0)
                 {
                     obj.GetComponent<Renderer>().material.color = Color.red;
-                    _cells[i,j] = new Cell(i,j,-1);
+                    Cells[i,j] = new Cell(i,j,-1,obj);
                 }
                 else if(i== 0 & j == 0)
                 {
                     obj.GetComponent<Renderer>().material.color = Color.green;
+                    Cells[i,j] = new Cell(i,j,10,obj);
                 }
                 else
                 {
                     obj.GetComponent<Renderer>().material.color = Color.white;
+                    obj.AddComponent<HoverScript>().mazeGenerator = this;
+                    Cells[i,j] = new Cell(i,j,10,obj);
+                    //hoverScript.cell = Cells[i, j];
+                    
+                    //TODO add script
+                    //HoverScript hoverScript = new HoverScript(Cells[i, j],this);
                 }
             }
         }
-        addNeighbors();
-        foreach (var eachCell in _cells)
+        AddNeighbors();
+        foreach (var eachCell in Cells)
         {
             Debug.Log(eachCell.ToString());
         }
     }
 
-    private void addNeighbors()
+    private void AddNeighbors()
     {
         for (int i = 0; i < width; i++)
         {
@@ -269,39 +279,74 @@ public class MazeGenerator : Maze
               //UP
               if (j + 1 < height)
               {
-                  if (_cells[i, j + 1].Cost > 0)
+                  if (Cells[i, j + 1].Cost > 0)
                   {
-                      _cells[i,j].addNeighbor(_cells[i,j+1]);
+                      Cells[i,j].addNeighbor(Cells[i,j+1]);
                   }
               }
               //DOWN
               if (j - 1 >= 0)
               {
                   //is path
-                  if (_cells[i, j - 1].Cost > 0)
+                  if (Cells[i, j - 1].Cost > 0)
                   {
-                      _cells[i,j].addNeighbor(_cells[i,j-1]);
+                      Cells[i,j].addNeighbor(Cells[i,j-1]);
                   }
               }
               //RIGHT
               if (i + 1 < width)
               {
                   //is path
-                  if (_cells[i + 1, j ].Cost > 0)
+                  if (Cells[i + 1, j ].Cost > 0)
                   {
-                      _cells[i,j].addNeighbor(_cells[i + 1,j]);
+                      Cells[i,j].addNeighbor(Cells[i + 1,j]);
                   }
               }
               //LEFT
               if (i - 1 >= 0)
               {
                   //is path
-                  if (_cells[i - 1, j ].Cost > 0)
+                  if (Cells[i - 1, j ].Cost > 0)
                   {
-                      _cells[i,j].addNeighbor(_cells[i - 1, j ]);
+                      Cells[i,j].addNeighbor(Cells[i - 1, j ]);
                   }
               }
             }
+        }
+    }
+
+    public void resetPath()
+    {
+        
+        //_lastPath.Clear();
+    }
+
+    public void GeneratePath(int x, int y)
+    {
+        if (_lastPath != null)
+        {
+            foreach (var eachCell in _lastPath)
+            {
+                ((Cell) eachCell).Cube.GetComponent<Renderer>().material.color = Color.white;
+            }
+        }
+
+        Cell end = Cells[x, y];
+        if (end == null)
+        {
+            return;
+        }
+
+        Cell start = Cells[0, 0];
+        IList<AstarNode> path = Astar.Astar.getPath(start, end);
+        if (path == null) {
+            return;
+        }
+        _lastPath = path;
+        _lastPathColor = new List<Color>();
+        foreach (var eachCell in _lastPath)
+        {
+            ((Cell) eachCell).Cube.GetComponent<Renderer>().material.color = Color.green;
         }
     }
 }
